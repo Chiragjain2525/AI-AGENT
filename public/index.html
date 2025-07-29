@@ -808,7 +808,7 @@
 
         async function callAIAssistant(prompt) {
             const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-            // REMOVED: const apiKey = "AIzaSyBZ2b7uZbRku0X5OFUD9qiQRYGtVXSxK2A";
+            // REMOVED: const apiKey = ";
             
             // Now calling your serverless function endpoint
             const apiUrl = `/.netlify/functions/gemini-proxy`; // Adjust this path if using a different serverless provider (e.g., /api/gemini-proxy for Vercel)
