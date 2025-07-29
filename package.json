@@ -1,15 +1,5 @@
 {
-  "name": "ai-github-agent",
-  "version": "1.0.0",
-  "description": "AI agent to analyze GitHub repos and generate READMEs.",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "@google/generative-ai": "^0.5.0",
-    "openai": "^5.10.2"
+    "@google/generative-ai": "^0.24.1"
   }
 }

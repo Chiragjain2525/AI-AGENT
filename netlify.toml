@@ -1,3 +1,9 @@
 [build]
-  publish = "public"
-  functions = "netlify/functions"
+  publish = "."  # This tells Netlify to publish the root directory of your project
+  functions = "netlify/functions" # This tells Netlify where to find your serverless functions
+
+# Optional: If you want to redirect all requests to your index.html for a SPA
+# [[redirects]]
+#   from = "/*"
+#   to = "/index.html"
+#   status = 200

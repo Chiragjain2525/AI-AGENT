@@ -807,24 +807,21 @@
         function getCodeExplanationPrompt(filePath, code) { return `You are an expert software developer. Explain the following code from the file "${filePath}". Provide a high-level summary first, then a more detailed breakdown of key functions or sections. Format your response in clear, readable Markdown. \n\n\`\`\`\n${code}\n\`\`\``; }
 
         async function callAIAssistant(prompt) {
-    const response = await fetch("/.netlify/functions/openai-handler", {
+    // Make a request to your Netlify Function, which securely handles the Gemini API call.
+    const response = await fetch("/.netlify/functions/google-api-handler", { // Or '/.netlify/functions/gemini-handler'
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            model: "gpt-4o", // or "gpt-3.5-turbo" if cheaper option needed
-            messages: [{ role: "user", content: prompt }]
-        })
+        body: JSON.stringify({ prompt: prompt }) // Send the prompt to your serverless function
     });
 
     if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`OpenAI API failed: ${error}`);
+        const errorData = await response.json(); // Assuming your serverless function sends JSON error
+        throw new Error(`AI API failed: ${errorData.error || 'Unknown error'}`);
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
-}
-
+    return data.content; // Assuming your Netlify Function returns the AI content in a 'content' field
+  } 
         
         function setLoadingState(isLoading, message = '') {
             const buttons = [analyzeBtn, pushBtn, improveReadmeBtn, suggestCommitBtn];
