@@ -1,3 +1,17 @@
+# netlify.toml
+# This file configures Netlify for your site and functions.
+
 [build]
-  publish = "." # Or your actual publish directory if it's not the root
+  # Specifies the directory where your build output (your frontend files like index.html) is located.
+  # If index.html is directly in the root of your repository, use ".".
+  # If index.html is inside a folder named 'public', use "public".
+  publish = "." 
+
+  # Specifies the directory where your Netlify Functions are located.
+  # This path is relative to the root of your repository.
   functions = "netlify/functions"
+
+# You can add more configurations here if needed, for example:
+# [dev]
+#   command = "npm run start" # Your local development server command (if any)
+#   port = 8888             # Port for Netlify Dev
