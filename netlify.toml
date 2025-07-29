@@ -1,11 +1,3 @@
 [build]
-  publish = "public" # Or wherever your index.html is located
-  functions = "netlify/functions" # This tells Netlify where to find your serverless functions
-
-# For local development with Netlify Dev (optional)
-[dev]
-  framework = "#custom"
-  command = "npm run start" # If you have a dev server command
-  targetPort = 8080 # Or whatever port your dev server runs on
-  port = 8888 # Port for Netlify Dev proxy
-  autoLaunch = true
+  publish = "." # Or your actual publish directory if it's not the root
+  functions = "netlify/functions"
