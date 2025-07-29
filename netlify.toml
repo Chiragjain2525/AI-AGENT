@@ -1,9 +1,11 @@
 [build]
-  publish = "."  # This tells Netlify to publish the root directory of your project
+  publish = "public" # Or wherever your index.html is located
   functions = "netlify/functions" # This tells Netlify where to find your serverless functions
 
-# Optional: If you want to redirect all requests to your index.html for a SPA
-# [[redirects]]
-#   from = "/*"
-#   to = "/index.html"
-#   status = 200
+# For local development with Netlify Dev (optional)
+[dev]
+  framework = "#custom"
+  command = "npm run start" # If you have a dev server command
+  targetPort = 8080 # Or whatever port your dev server runs on
+  port = 8888 # Port for Netlify Dev proxy
+  autoLaunch = true

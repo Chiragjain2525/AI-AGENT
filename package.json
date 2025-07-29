@@ -1,4 +1,22 @@
 {
+  "name": "ai-agent",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Chiragjain2525/AI-AGENT.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Chiragjain2525/AI-AGENT/issues"
+  },
+  "homepage": "https://github.com/Chiragjain2525/AI-AGENT#readme",
+  "description": "",
   "dependencies": {
     "@google/generative-ai": "^0.24.1"
   }
