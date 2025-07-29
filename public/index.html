@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI GitHub Agent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" xintegrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+             padding-top: 80px; 
+        }
+        h1, h2, h3, h4, h5, h6 {
+             font-family: 'Poppins', sans-serif;
+        }
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .text-glow {
+            text-shadow: 0 0 8px rgba(192, 132, 252, 0.6), 0 0 20px rgba(167, 139, 250, 0.4);
+        }
+        .lds-dual-ring {
+            display: inline-block;
+            width: 80px;
+            height: 80px;
+        }
+        .lds-dual-ring:after {
+            content: " ";
+            display: block;
+            width: 64px;
+            height: 64px;
+            margin: 8px;
+            border-radius: 50%;
+            border: 6px solid #818cf8;
+            border-color: #818cf8 transparent #818cf8 transparent;
+            animation: lds-dual-ring 1.2s linear infinite;
+        }
+        @keyframes lds-dual-ring {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .btn-animated-glow {
+            background: linear-gradient(90deg, #5b21b6, #9333ea, #5b21b6);
+            background-size: 200% 200%;
+            border: 1px solid #a78bfa;
+            box-shadow: 0 0 8px rgba(167, 139, 250, 0.4), 0 0 15px rgba(167, 139, 250, 0.2);
+            animation: gradient-animation 5s ease infinite;
+            transition: all 0.3s ease;
+        }
+        .btn-animated-glow:hover {
+            animation-duration: 3s;
+            box-shadow: 0 0 12px rgba(167, 139, 250, 0.6), 0 0 25px rgba(167, 139, 250, 0.4);
+        }
+
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .footer-icon {
+            color: #9ca3af;
+            transition: transform 0.3s ease, color 0.3s ease;
+        }
+        .footer-icon:hover {
+            transform: scale(1.2);
+            color: #a855f7;
+        }
+
+        .commit-suggestion {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .commit-suggestion:hover {
+            background-color: rgba(167, 139, 250, 0.1);
+        }
+        
+        #readme-output-container, #code-explanation-container {
+            background-color: rgba(23, 27, 41, 0.7);
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+        }
+        #readme-output-container h1, #readme-output-container h2, #readme-output-container h3,
+        #code-explanation-container h1, #code-explanation-container h2, #code-explanation-container h3 {
+            font-weight: 700;
+            color: #e2e8f0;
+            border-bottom: 1px solid #475569;
+            padding-bottom: 0.5rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        #readme-output-container h1, #code-explanation-container h1 { font-size: 2em; }
+        #readme-output-container h2, #code-explanation-container h2 { font-size: 1.5em; }
+        #readme-output-container h3, #code-explanation-container h3 { font-size: 1.25em; }
+        #readme-output-container p, #code-explanation-container p { margin-bottom: 1rem; line-height: 1.6; }
+        #readme-output-container a, #code-explanation-container a { color: #818cf8; text-decoration: underline; }
+        #readme-output-container ul, #readme-output-container ol, #code-explanation-container ul, #code-explanation-container ol { margin-left: 1.5rem; margin-bottom: 1rem; list-style-position: outside; }
+        #readme-output-container li, #code-explanation-container li { margin-bottom: 0.5rem; }
+        #readme-output-container code, #code-viewer pre code, #code-explanation-container code {
+            background-color: #1e293b;
+            color: #f1f5f9;
+            padding: 0.2em 0.4em;
+            margin: 0;
+            font-size: 85%;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #readme-output-container pre, #code-viewer pre, #code-explanation-container pre {
+            background-color: #0f172a;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+        #readme-output-container pre code, #code-viewer pre code, #code-explanation-container pre code {
+            background-color: transparent;
+            padding: 0;
+            font-size: 100%;
+        }
+
+        #main-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            padding: 0.75rem 1rem;
+            background-color: rgba(10, 5, 20, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(126, 34, 206, 0.35);
+            color: white;
+            transform: translateY(-150%);
+            opacity: 0;
+            animation: coolHeaderAppear 0.5s 0.1s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+        }
+
+        @keyframes coolHeaderAppear {
+            0% {
+                transform: translateY(-150%);
+                opacity: 0;
+            }
+            70% {
+                transform: translateY(8px);
+                opacity: 0.9;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .tab-button {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-button.active {
+            color: #c084fc;
+            border-bottom-color: #c084fc;
+        }
+        #file-list .file-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #file-list .file-item:hover {
+            background-color: rgba(167, 139, 250, 0.1);
+        }
+        #file-list .file-item i {
+            color: #93c5fd; /* light blue */
+        }
+         #file-list .folder-item i {
+            color: #fcd34d; /* amber */
+        }
+         /* Module fade animations */
+        .module-content {
+            animation-duration: 0.5s;
+            animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            animation-fill-mode: forwards;
+        }
+        .fade-in { animation-name: fadeIn; }
+        .fade-out { animation-name: fadeOut; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-10px); }
+        }
+
+        #backToTopBtn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #7e22ce;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1001;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+            box-shadow: 0 4px 12px rgba(126, 34, 206, 0.4);
+        }
+        #backToTopBtn.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        #backToTopBtn:hover {
+             background-color: #9333ea;
+        }
+        
+        /* New particle styles */
+        .cursor-particle {
+            position: fixed; 
+            left: 0; 
+            top: 0;  
+            border-radius: 50%;
+            pointer-events: none; 
+            opacity: 0.7;
+            transform: translate(-50%, -50%); 
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+            z-index: 9999; 
+            mix-blend-mode: screen; 
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-gray-200">
+    <canvas id="bg-canvas"></canvas>
+
+    <header id="main-header" class="text-center">
+        <h1 class="text-3xl md:text-4xl font-bold text-purple-300 text-glow">AI GitHub Agent</h1>
+    </header>
+
+    <div class="container mx-auto px-4 md:px-8 max-w-4xl relative z-10 py-12">
+        <main id="main-content" class="bg-slate-900/70 backdrop-blur-md p-6 md:p-8 rounded-2xl shadow-lg border border-slate-700">
+            
+            <!-- Module Tabs -->
+            <div class="flex border-b border-slate-700 mb-6">
+                <button id="tab-module1" class="tab-button active font-semibold text-lg py-2 px-4">Module 1: README Generator</button>
+                <button id="tab-module2" class="tab-button font-semibold text-lg py-2 px-4">Module 2: Code Analyzer</button>
+            </div>
+
+            <!-- Global Components -->
+            <div id="repo-input-section">
+                <label for="repo-url" class="block text-sm font-medium text-purple-200 mb-2">Public GitHub Repository URL</label>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <input type="url" id="repo-url" class="flex-grow w-full px-4 py-2 text-gray-50 bg-slate-800/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://github.com/username/repository-name">
+                    <button id="analyze-btn" class="w-full sm:w-auto text-white font-semibold px-6 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 focus:ring-offset-slate-900 btn-animated-glow">
+                        Analyze ✨
+                    </button>
+                </div>
+            </div>
+
+            <div id="error-box" class="hidden bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-lg my-4" role="alert">
+                <strong class="font-bold">Error:</strong>
+                <span id="error-message" class="block sm:inline"></span>
+            </div>
+             <div id="success-box" class="hidden bg-green-900/50 border border-green-500 text-green-300 px-4 py-3 rounded-lg my-4" role="alert">
+                <strong class="font-bold">Success!</strong>
+                <span id="success-message" class="block sm:inline"></span>
+            </div>
+
+            <div id="loading-spinner" class="hidden text-center py-10">
+                <div class="lds-dual-ring"></div>
+                <p id="loading-message" class="mt-4 text-gray-400 font-medium">Analyzing repository...</p>
+            </div>
+            
+            <!-- Module 1: README Generator -->
+            <div id="module1-container" class="module-content">
+                <div id="result-container" class="hidden">
+                    <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-4 mt-8">
+                        <h2 class="text-2xl font-bold text-gray-50">Generated README.md</h2>
+                         <button id="copy-btn" class="bg-slate-700 text-gray-200 font-semibold px-4 py-2 rounded-lg hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-all duration-200 w-full md:w-auto">Copy Markdown</button>
+                    </div>
+
+                    <div id="readme-output-container">
+                        <div id="readme-output"></div>
+                    </div>
+                    
+                    <div id="improve-section" class="mt-6 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                        <h3 class="text-lg font-bold text-gray-100 mb-2">Refine & Improve ✨</h3>
+                        <p class="text-sm text-gray-400 mt-1 mb-3">Ask the AI to make changes. For example: "Make it more professional" or "Add a section about future plans".</p>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                             <input type="text" id="improve-readme-input" class="flex-grow w-full px-4 py-2 text-gray-50 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="Your instructions...">
+                             <button id="improve-readme-btn" class="w-full sm:w-auto bg-indigo-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">Improve</button>
+                        </div>
+                    </div>
+
+                    <div id="push-section" class="mt-6 p-4 bg-slate-800/80 rounded-lg border border-slate-700">
+                        <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-2 gap-2">
+                            <h3 class="text-lg font-bold text-gray-100">Automate: Push to GitHub</h3>
+                             <button id="suggest-commit-btn" class="w-full sm:w-auto text-sm bg-purple-600 text-white font-semibold px-4 py-1 rounded-lg hover:bg-purple-700 transition-all">Suggest Commits ✨</button>
+                        </div>
+
+                        <div id="commit-suggestions-container" class="my-4 space-y-2 hidden"></div>
+                        <p class="text-sm text-gray-400 mt-1">
+                            You'll need a <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank" class="text-indigo-400 hover:underline">GitHub Personal Access Token</a> with `repo` scope.
+                        </p>
+                        <div class="mt-4">
+                            <label for="github-token" class="block text-sm font-medium text-gray-300 mb-2">GitHub Personal Access Token</label>
+                             <input type="password" id="github-token" class="w-full px-4 py-2 text-gray-50 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="ghp_...">
+                        </div>
+                        <div class="mt-4">
+                             <label for="commit-message" class="block text-sm font-medium text-gray-300 mb-2">Commit Message</label>
+                             <input type="text" id="commit-message" class="w-full px-4 py-2 text-gray-50 bg-slate-700 border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500" value="feat: Add AI-generated README.md">
+                        </div>
+                        <button id="push-btn" class="mt-4 w-full bg-green-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all">Push to Repo</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module 2: Code Analyzer -->
+            <div id="module2-container" class="hidden module-content">
+                 <div id="analysis-results-container" class="hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-50 mb-4">Language Breakdown</h2>
+                            <div class="relative h-80 p-4 bg-slate-800/50 rounded-lg">
+                                <canvas id="language-chart"></canvas>
+                            </div>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-50 mb-4">File Explorer</h2>
+                            <div id="file-list" class="p-4 bg-slate-800/50 rounded-lg max-h-80 overflow-y-auto"></div>
+                        </div>
+                    </div>
+                    <div id="code-display-section" class="hidden mt-8">
+                        <h2 id="code-file-header" class="text-2xl font-bold text-gray-50 mb-4">Code Viewer</h2>
+                        <div id="code-viewer" class="mb-6"></div>
+                        <h2 class="text-2xl font-bold text-gray-50 mb-4">AI Code Explanation</h2>
+                        <div id="code-explanation-container">
+                            <div id="code-explanation-output"></div>
+                        </div>
+                         <div id="code-explanation-loader" class="hidden text-center py-6">
+                            <div class="lds-dual-ring"></div>
+                            <p class="mt-4 text-gray-400 font-medium">AI is explaining the code...</p>
+                        </div>
+                    </div>
+                 </div>
+            </div>
+
+        </main>
+        
+        <footer class="text-center py-12 mt-12 bg-transparent relative z-10">
+            <div class="container mx-auto">
+                <div class="mb-6">
+                    <h3 class="text-2xl font-semibold text-purple-400 mb-4 text-glow">Connect With Me</h3>
+                    <div class="flex justify-center space-x-6">
+                        <a href="https://linkedin.com/in/chirag-jain-922042362" target="_blank" rel="noopener noreferrer" class="footer-icon" aria-label="LinkedIn Profile">
+                            <i class="fab fa-linkedin fa-2x"></i>
+                        </a>
+                        <a href="https://github.com/Chiragjain2525" target="_blank" rel="noopener noreferrer" class="footer-icon" aria-label="GitHub Profile">
+                            <i class="fab fa-github fa-2x"></i>
+                        </a>
+                        <a href="mailto:chiragjain2320@gmail.com" class="footer-icon" aria-label="Email Me">
+                            <i class="fas fa-envelope fa-2x"></i>
+                        </a>
+                    </div>
+                </div>
+                <p class="text-gray-400">&copy; <span id="currentYear"></span> Chirag Jain. All rights reserved.</p>
+                <p class="text-sm text-purple-500">Crafted with <span class="text-red-500">&hearts;</span>, Three.js & TailwindCSS</p>
+            </div>
+        </footer>
+    </div>
+    
+    <button id="backToTopBtn" title="Go to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+    
+    <script type="module">
+        // --- GLOBAL ELEMENTS & STATE ---
+        const currentYearEl = document.getElementById('currentYear');
+        if (currentYearEl) currentYearEl.textContent = new Date().getFullYear();
+
+        const repoUrlInput = document.getElementById('repo-url');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const errorBox = document.getElementById('error-box');
+        const errorMessage = document.getElementById('error-message');
+        const successBox = document.getElementById('success-box');
+        const successMessage = document.getElementById('success-message');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const loadingMessage = document.getElementById('loading-message');
+        const backToTopBtn = document.getElementById('backToTopBtn');
+
+        const tabModule1 = document.getElementById('tab-module1');
+        const tabModule2 = document.getElementById('tab-module2');
+        const module1Container = document.getElementById('module1-container');
+        const module2Container = document.getElementById('module2-container');
+
+        let currentModule = 'module1';
+        let lastRepoData = null;
+        let rawMarkdownContent = '';
+        let languageChart = null;
+        let currentRepoPath = null;
+        
+        // --- MODULE 1 ELEMENTS ---
+        const pushBtn = document.getElementById('push-btn');
+        const resultContainer = document.getElementById('result-container');
+        const readmeOutput = document.getElementById('readme-output');
+        const copyBtn = document.getElementById('copy-btn');
+        const improveReadmeInput = document.getElementById('improve-readme-input');
+        const improveReadmeBtn = document.getElementById('improve-readme-btn');
+        const suggestCommitBtn = document.getElementById('suggest-commit-btn');
+        const commitSuggestionsContainer = document.getElementById('commit-suggestions-container');
+        const githubTokenInput = document.getElementById('github-token');
+        const commitMessageInput = document.getElementById('commit-message');
+
+        // --- MODULE 2 ELEMENTS ---
+        const analysisResultsContainer = document.getElementById('analysis-results-container');
+        const languageChartCanvas = document.getElementById('language-chart');
+        const fileListContainer = document.getElementById('file-list');
+        const codeDisplaySection = document.getElementById('code-display-section');
+        const codeFileHeader = document.getElementById('code-file-header');
+        const codeViewer = document.getElementById('code-viewer');
+        const codeExplanationOutput = document.getElementById('code-explanation-output');
+        const codeExplanationLoader = document.getElementById('code-explanation-loader');
+        
+        // --- LIBRARIES & ANIMATION SETUP ---
+        const lenis = new Lenis();
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#bg-canvas'), });
+        
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.position.setZ(30);
+        
+        const starGeometry = new THREE.BufferGeometry();
+        const starCount = 6000;
+        const positions = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount * 3; i++) { positions[i] = (Math.random() - 0.5) * 600; }
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.7 });
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+        
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', (event) => { mouseX = event.clientX; mouseY = event.clientY; });
+        
+        function animate(time) {
+            stars.rotation.x += 0.0001;
+            stars.rotation.y += 0.0001;
+            camera.position.x += (mouseX - camera.position.x * 200) * 0.0001;
+            camera.position.y += (-mouseY - camera.position.y * 200) * 0.0001;
+            camera.lookAt(scene.position);
+            renderer.render(scene, camera);
+            lenis.raf(time);
+            requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- INITIAL SETUP & EVENT LISTENERS ---
+        analyzeBtn.addEventListener('click', handleAnalyzeClick);
+        tabModule1.addEventListener('click', () => switchModule('module1'));
+        tabModule2.addEventListener('click', () => switchModule('module2'));
+        copyBtn.addEventListener('click', copyToClipboard);
+        pushBtn.addEventListener('click', handlePushToGitHub);
+        improveReadmeBtn.addEventListener('click', handleImproveReadme);
+        suggestCommitBtn.addEventListener('click', handleSuggestCommits);
+        
+        backToTopBtn.addEventListener('click', () => lenis.scrollTo(0));
+        
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                backToTopBtn.classList.add('show');
+            } else {
+                backToTopBtn.classList.remove('show');
+            }
+        });
+
+        function initCustomCursorEffect() {
+            const particleColors = ["#a855f7", "#c084fc", "#e9d5ff", "#ffffff"];
+            
+            function createParticle(x, y) {
+                const particle = document.createElement('div');
+                particle.classList.add('cursor-particle');
+                document.body.appendChild(particle);
+                const size = Math.random() * 6 + 3;
+                const color = particleColors[Math.floor(Math.random() * particleColors.length)];
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.backgroundColor = color;
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+                void particle.offsetWidth; 
+                const randomX = (Math.random() - 0.5) * 40;
+                const randomY = (Math.random() - 0.5) * 40;
+                particle.style.opacity = '0';
+                particle.style.transform = `translate(-50%, -50%) translate(${randomX}px, ${randomY}px) scale(0.1)`;
+                setTimeout(() => {
+                    if (particle.parentNode) particle.parentNode.removeChild(particle);
+                }, 600);
+            }
+
+            document.body.addEventListener('mousemove', function(e) {
+                createParticle(e.clientX, e.clientY);
+            });
+
+            document.body.addEventListener('touchmove', function(e) {
+                if (e.touches.length > 0) {
+                    const touch = e.touches[0];
+                    createParticle(touch.clientX, touch.clientY);
+                }
+            }, { passive: true });
+        }
+        initCustomCursorEffect();
+
+
+        // --- CORE FUNCTIONS ---
+        function switchModule(newModule) {
+            if (newModule === currentModule) return;
+
+            const oldModuleContainer = document.getElementById(`${currentModule}-container`);
+            const newModuleContainer = document.getElementById(`${newModule}-container`);
+
+            oldModuleContainer.classList.add('fade-out');
+            
+            oldModuleContainer.addEventListener('animationend', () => {
+                oldModuleContainer.classList.add('hidden');
+                oldModuleContainer.classList.remove('fade-out');
+
+                newModuleContainer.classList.remove('hidden');
+                newModuleContainer.classList.add('fade-in');
+            }, { once: true });
+
+
+            currentModule = newModule;
+            tabModule1.classList.toggle('active', newModule === 'module1');
+            tabModule2.classList.toggle('active', newModule === 'module2');
+            
+            resultContainer.classList.add('hidden');
+            analysisResultsContainer.classList.add('hidden');
+            codeDisplaySection.classList.add('hidden');
+            repoUrlInput.value = '';
+        }
+
+        async function handleAnalyzeClick() {
+            hideMessages();
+            const repoUrl = repoUrlInput.value.trim();
+            if (!isValidRepoUrl(repoUrl)) return;
+
+            currentRepoPath = parseGithubUrl(repoUrl);
+            setLoadingState(true, 'Analyzing repository...');
+            resultContainer.classList.add('hidden');
+            analysisResultsContainer.classList.add('hidden');
+            codeDisplaySection.classList.add('hidden');
+
+            try {
+                lastRepoData = await fetchRepoData(currentRepoPath.owner, currentRepoPath.repo);
+                
+                if (currentModule === 'module1') {
+                    setLoadingState(true, 'AI is writing the README...');
+                    const prompt = getInitialReadmePrompt(lastRepoData);
+                    rawMarkdownContent = await callAIAssistant(prompt);
+                    readmeOutput.innerHTML = marked.parse(rawMarkdownContent);
+                    resultContainer.classList.remove('hidden');
+                } else if (currentModule === 'module2') {
+                    setLoadingState(true, 'Visualizing data & fetching file tree...');
+                    analysisResultsContainer.classList.remove('hidden');
+                    analysisResultsContainer.classList.add('fade-in');
+                    displayLanguageChart(lastRepoData.languages);
+                    await displayFileTree(currentRepoPath.owner, currentRepoPath.repo, lastRepoData.branch);
+                }
+            } catch (error) {
+                console.error('An error occurred:', error);
+                showError(error.message || 'An unknown error occurred.');
+            } finally {
+                setLoadingState(false);
+            }
+        }
+        
+        // --- MODULE 1: README GENERATOR FUNCTIONS ---
+        async function handleImproveReadme() {
+            hideMessages();
+            const instruction = improveReadmeInput.value.trim();
+            if (!instruction) { showError("Please enter an instruction."); return; }
+            setLoadingState(true, 'AI is improving the README...');
+            try {
+                const prompt = getImproveReadmePrompt(rawMarkdownContent, instruction);
+                rawMarkdownContent = await callAIAssistant(prompt);
+                readmeOutput.innerHTML = marked.parse(rawMarkdownContent);
+                improveReadmeInput.value = ''; 
+                showSuccess("README has been improved!");
+            } catch (error) {
+                console.error('Improve README failed:', error);
+                showError(error.message);
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        async function handleSuggestCommits() {
+            hideMessages();
+            setLoadingState(true, 'AI is suggesting commit messages...');
+            commitSuggestionsContainer.classList.add('hidden');
+            try {
+                const prompt = getSuggestCommitsPrompt(rawMarkdownContent);
+                const suggestionsText = await callAIAssistant(prompt);
+                const suggestions = suggestionsText.split('\n').map(s => s.trim().replace(/^-/, '').trim()).filter(Boolean);
+                commitSuggestionsContainer.innerHTML = ''; 
+                if(suggestions.length > 0) {
+                    const title = document.createElement('p');
+                    title.className = "text-sm font-semibold text-gray-300 mb-2";
+                    title.textContent = "Click a suggestion to use it:";
+                    commitSuggestionsContainer.appendChild(title);
+                    suggestions.forEach(suggestion => {
+                        const div = document.createElement('div');
+                        div.className = 'p-2 rounded-md bg-slate-700/50 text-gray-200 text-sm font-mono commit-suggestion';
+                        div.textContent = suggestion;
+                        div.onclick = () => { commitMessageInput.value = suggestion; showSuccess('Commit message updated!'); };
+                        commitSuggestionsContainer.appendChild(div);
+                    });
+                     commitSuggestionsContainer.classList.remove('hidden');
+                } else { showError("AI couldn't generate commit suggestions."); }
+            } catch (error) {
+                console.error('Suggest commits failed:', error); showError(error.message);
+            } finally { setLoadingState(false); }
+        }
+        
+        async function handlePushToGitHub() {
+            hideMessages();
+            const token = githubTokenInput.value.trim();
+            const commitMessage = commitMessageInput.value.trim();
+            if (!token) { showError('GitHub Personal Access Token is required.'); return; }
+            if (!commitMessage) { showError('Commit message cannot be empty.'); return; }
+            setLoadingState(true, 'Pushing to repository...');
+            try {
+                const repoPath = currentRepoPath;
+                const fileContentBase64 = btoa(unescape(encodeURIComponent(rawMarkdownContent)));
+                const GITHUB_API_BASE = `https://api.github.com/repos/${repoPath.owner}/${repoPath.repo}/contents/README.md`;
+                const payload = { message: commitMessage, content: fileContentBase64, committer: { name: "AI GitHub Agent", email: "bot@example.com" } };
+                const existingFile = await fetch(GITHUB_API_BASE, { headers: { 'Authorization': `token ${token}` } });
+                if (existingFile.ok) { payload.sha = (await existingFile.json()).sha; }
+                const response = await fetch(GITHUB_API_BASE, { method: 'PUT', headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) { throw new Error(`GitHub API Error: ${(await response.json()).message}`); }
+                const responseData = await response.json();
+                showSuccess(`Successfully pushed README.md! <a href="${responseData.content.html_url}" target="_blank" class="text-indigo-400 underline">View commit</a>`);
+            } catch (error) {
+                console.error('Push to GitHub failed:', error); showError(error.message);
+            } finally { setLoadingState(false); }
+        }
+
+        // --- MODULE 2: CODE ANALYZER FUNCTIONS ---
+        function displayLanguageChart(languages) {
+            if (languageChart) { languageChart.destroy(); }
+            const ctx = languageChartCanvas.getContext('2d');
+            const data = {
+                labels: Object.keys(languages),
+                datasets: [{
+                    label: 'Bytes of Code',
+                    data: Object.values(languages),
+                    backgroundColor: [
+                        'rgba(168, 85, 247, 0.7)', // purple
+                        'rgba(139, 92, 246, 0.7)', // indigo
+                        'rgba(99, 102, 241, 0.7)', // indigo
+                        'rgba(59, 130, 246, 0.7)', // blue
+                        'rgba(14, 165, 233, 0.7)', // sky
+                        'rgba(20, 184, 166, 0.7)', // teal
+                        'rgba(16, 185, 129, 0.7)', // emerald
+                    ],
+                     borderColor: [
+                        '#a855f7',
+                        '#8b5cf6',
+                        '#6366f1',
+                        '#3b82f6',
+                        '#0ea5e9',
+                        '#14b8a6',
+                        '#10b981',
+                    ],
+                    borderWidth: 1,
+                    hoverOffset: 4
+                }]
+            };
+            languageChart = new Chart(ctx, {
+                type: 'polarArea',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { 
+                                color: '#e2e8f0',
+                                font: {
+                                    family: "'Roboto', sans-serif"
+                                },
+                                padding: 15
+                            } 
+                        },
+                        title: { display: false }
+                    }
+                },
+            });
+        }
+        
+        async function displayFileTree(owner, repo, branch) {
+            const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`);
+            if (!response.ok) { throw new Error('Failed to fetch file tree.'); }
+            const { tree } = await response.json();
+            fileListContainer.innerHTML = '';
+            tree.filter(item => item.type === 'blob').forEach(item => { // Only show files
+                const fileDiv = document.createElement('div');
+                fileDiv.className = 'file-item p-2 rounded-md flex items-center gap-3 text-sm';
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-file-code';
+                fileDiv.appendChild(icon);
+                const text = document.createElement('span');
+                text.textContent = item.path;
+                fileDiv.appendChild(text);
+                fileDiv.onclick = () => handleFileClick(item.path);
+                fileListContainer.appendChild(fileDiv);
+            });
+        }
+
+        async function handleFileClick(filePath) {
+            hideMessages();
+            setLoadingState(true, `Fetching ${filePath}...`);
+            codeDisplaySection.classList.remove('hidden');
+            codeViewer.innerHTML = '';
+            codeExplanationOutput.innerHTML = '';
+            codeFileHeader.textContent = `Code Viewer: ${filePath}`;
+            try {
+                const fileContent = await getFileContent(currentRepoPath.owner, currentRepoPath.repo, filePath);
+                if (fileContent === null) throw new Error('Could not fetch file content.');
+                
+                const pre = document.createElement('pre');
+                const code = document.createElement('code');
+                code.textContent = fileContent;
+                pre.appendChild(code);
+                codeViewer.appendChild(pre);
+
+                codeExplanationLoader.classList.remove('hidden');
+                const prompt = getCodeExplanationPrompt(filePath, fileContent);
+                const explanation = await callAIAssistant(prompt);
+                codeExplanationOutput.innerHTML = marked.parse(explanation);
+
+            } catch(error) {
+                showError(error.message);
+            } finally {
+                setLoadingState(false);
+                codeExplanationLoader.classList.add('hidden');
+            }
+        }
+        
+        // --- UTILITY & API FUNCTIONS ---
+        async function fetchRepoData(owner, repo) {
+            const GITHUB_API_BASE = 'https://api.github.com/repos/';
+            const fetchJson = async (url) => {
+                const response = await fetch(url);
+                if (!response.ok) { throw new Error(`GitHub API request failed: ${response.statusText} (${response.status})`); }
+                return response.json();
+            };
+            const [details, languages] = await Promise.all([
+                fetchJson(`${GITHUB_API_BASE}${owner}/${repo}`),
+                fetchJson(`${GITHUB_API_BASE}${owner}/${repo}/languages`)
+            ]);
+            return { name: details.name, description: details.description || 'No description provided.', primaryLanguage: details.language, languages, branch: details.default_branch };
+        }
+        
+        async function getFileContent(owner, repo, path) {
+            try {
+                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`);
+                if (!response.ok) return null;
+                const data = await response.json();
+                return atob(data.content);
+            } catch (error) {
+                console.warn(`Could not fetch ${path}:`, error); return null;
+            }
+        }
+
+        function getInitialReadmePrompt(data) { return `You are an expert technical writer. Create a high-quality README.md in Markdown for a GitHub repository with the following data: Name: ${data.name}, Description: ${data.description}, Primary Language: ${data.primaryLanguage}. Include sections for description, features, installation, and usage.`; }
+        function getImproveReadmePrompt(readme, instruction) { return `You are an expert technical writer. Improve the following README.md based on the user's instruction. Generate a new, complete README. Original README:\n---\n${readme}\n---\nInstruction: "${instruction}". Generate ONLY the full, updated Markdown.`; }
+        function getSuggestCommitsPrompt(readme) { return `Based on this README.md, generate 3-5 Conventional Commit messages (e.g., "feat: ...", "docs: ..."). README:\n---\n${readme}\n---\nProvide ONLY the commit messages, each on a new line.`; }
+        function getCodeExplanationPrompt(filePath, code) { return `You are an expert software developer. Explain the following code from the file "${filePath}". Provide a high-level summary first, then a more detailed breakdown of key functions or sections. Format your response in clear, readable Markdown. \n\n\`\`\`\n${code}\n\`\`\``; }
+
+        async function callAIAssistant(prompt) {
+    const response = await fetch("/.netlify/functions/openai-handler", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            model: "gpt-4o", // or "gpt-3.5-turbo" if cheaper option needed
+            messages: [{ role: "user", content: prompt }]
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`OpenAI API failed: ${error}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+}
+
+        
+        function setLoadingState(isLoading, message = '') {
+            const buttons = [analyzeBtn, pushBtn, improveReadmeBtn, suggestCommitBtn];
+            if (isLoading) {
+                buttons.forEach(btn => { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); });
+                loadingSpinner.classList.remove('hidden');
+                loadingMessage.textContent = message;
+            } else {
+                buttons.forEach(btn => { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); });
+                loadingSpinner.classList.add('hidden');
+            }
+        }
+        
+        function copyToClipboard() {
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = rawMarkdownContent;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+            showSuccess('Markdown copied to clipboard!');
+        }
+
+        function isValidRepoUrl(url) {
+            if (!url) { showError('Please enter a GitHub repository URL.'); return false; }
+            if (!parseGithubUrl(url)) { showError('Invalid GitHub URL format. Use "https://github.com/user/repo".'); return false; }
+            return true;
+        }
+
+        function parseGithubUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                if (urlObj.hostname !== 'github.com') return null;
+                const pathParts = urlObj.pathname.split('/').filter(part => part);
+                return pathParts.length >= 2 ? { owner: pathParts[0], repo: pathParts[1].replace('.git', '') } : null;
+            } catch (e) { return null; }
+        }
+        
+        function showError(message) { errorMessage.textContent = message; errorBox.classList.remove('hidden'); }
+        function showSuccess(message) { successMessage.innerHTML = message; successBox.classList.add('hidden'); }
+        function hideMessages() { errorBox.classList.add('hidden'); successBox.classList.add('hidden'); }
+        
+    </script>
+</body>
+</html>
